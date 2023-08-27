@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SF Browser</title>
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #navBar {
+      width: 100%;
+      height: 50px;
+      background-color: #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+    #navBar input[type="text"],
+    #navBar select {
+      width: 70%;
+      height: 30px;
+      font-size: 20px;
+      padding: 0 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #fff;
+      box-sizing: border-box;
+      color: #333;
+      outline: none;
+    }
+    #navBar button {
+      width: 10%;
+      height: 30px;
+      font-size: 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #f44336;
+      color: white;
+      outline: none;
+    }
+    #browserFrame {
+      width: 100%;
+      height: calc(100vh - 50px);
+      border: none;
+    }
+    #fpsDisplay {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f44336;
+      font-size: 16px;
+      color: white;
+      padding: 5px;
+      border-radius: 5px;
+      box-sizing: border-box;
+      height: 30px;
+      width: 100px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="navBar">
+    <button id="backButton">Back</button>
+    <button id="forwardButton">Forward</button>
+    <input type="text" id="urlInput" value="https://" />
+    <button id="goButton">Go</button>
+    <select id="historyDropdown"></select>
+    <div id="fpsDisplay">FPS: 0</div>
+  </div>
+  <iframe id="browserFrame"></iframe>
+  <script type="text/javascript">
+    var backButton = document.getElementById("backButton");
+    var forwardButton = document.getElementById("forwardButton");
+    var urlInput = document.getElementById("urlInput");
+    var goButton = document.getElementById("goButton");
+    var browserFrame = document.getElementById("browserFrame");
+    var fpsDisplay = document.getElementById("fpsDisplay");
+    var fps = 0;
+    var framesRendered = 0;
+    var lastFrameTime = performance.now();
+    var historyDropdown = document.getElementById("historyDropdown");
+    var historyCount = 0;
+    var history = {};
+    // handle back button click
+    backButton.addEventListener("click", function () {
+      browserFrame.contentWindow.history.back();
+    });
+    // handle forward button click
+    forwardButton.addEventListener("click", function () {
+      browserFrame.contentWindow.history.forward();
+    });
+    // handle go button click
+    goButton.addEventListener("click", function () {
+      browserFrame.src = urlInput.value;
+      addToHistory(urlInput.value);
+    });
+    // handle history dropdown change
+    historyDropdown.addEventListener("change", function () {
+      var url = historyDropdown.value;
+      browserFrame.src = url;
+      addToHistory(url);
+    });
+    // measure FPS and update display
+    function measureFPS() {
+      framesRendered++;
+      var currentTime = performance.now();
+      var elapsedTime = currentTime - lastFrameTime;
+      if (elapsedTime >= 1000) {
+        fps = Math.round((framesRendered / elapsedTime) * 1000);
+        fpsDisplay.textContent = "FPS: " + fps;
+        framesRendered = 0;
+        lastFrameTime = currentTime;
+      }
+      requestAnimationFrame(measureFPS);
+    }
+    requestAnimationFrame(measureFPS);
+    // add url to history
+    function addToHistory(url) {
+      if (history[url]) {
+        return;
+      }
+      history[url] = true;
+      var option = new Option(url, url);
+      historyDropdown.add(option);
+      historyCount++;
+      if (historyCount > 10) {
+        historyDropdown.remove(0);
+        historyCount--;
+      }
+    }
+    // populate history dropdown
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      if (key.indexOf("SF_BROWSER_HISTORY_") === 0) {
+        var url = localStorage.getItem(key);
+        var option = new Option(url, url);
+        historyDropdown.add(option);
+        historyCount++;
+        history[url] = true;
+      }
+    }
+    // save history to local storage
+    window.addEventListener("beforeunload", function () {
+      for (var url in history) {
+        if (history.hasOwnProperty(url)) {
+          localStorage.setItem("SF_BROWSER_HISTORY_" + url, url);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
